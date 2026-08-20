@@ -134,25 +134,30 @@ def process_hko_logic(report_path, output_path):
     pivot_df = pivot_df.fillna("")
     
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        # Tulis data awal / mentahan
+        df.to_excel(writer, sheet_name='Data Awal', index=False)
+        
+        # Tulis hasil pivot
         pivot_df.to_excel(writer, sheet_name='Pivot HKO', index=False)
         
         workbook = writer.book
-        worksheet = writer.sheets['Pivot HKO']
+        worksheet_pivot = writer.sheets['Pivot HKO']
         
         green_fill = PatternFill(start_color="00B050", end_color="00B050", fill_type="solid")
         center_alignment = Alignment(horizontal="center", vertical="center")
         header_font = Font(color="000000", bold=True)
         
-        for row in worksheet.iter_rows():
+        # Styling Pivot HKO
+        for row in worksheet_pivot.iter_rows():
             for cell in row:
                 cell.alignment = center_alignment
                 if cell.row == 1:
                     cell.fill = green_fill
                     cell.font = header_font
                     
-        for col in worksheet.columns:
+        for col in worksheet_pivot.columns:
             column = col[0].column_letter
-            worksheet.column_dimensions[column].width = 15
+            worksheet_pivot.column_dimensions[column].width = 15
             
     return output_path
 
