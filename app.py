@@ -59,6 +59,9 @@ def process_data_logic(master_path, report_path, output_path):
     report_df.insert(col_mandor_idx + 3, 'bagian', bagian_series)
     report_df.insert(col_mandor_idx + 4, 'Totall', totall_series)
     
+    # Urutkan data berdasarkan Totall (Terbesar ke Terkecil) lalu berdasarkan Nama TK (A-Z)
+    report_df = report_df.sort_values(by=['Totall', 'Nama TK'], ascending=[False, True])
+    
     # Ganti NaNs dengan string kosong agar tidak error di openpyxl
     report_df = report_df.fillna("")
 
