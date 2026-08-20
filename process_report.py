@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import glob
 from openpyxl.styles import PatternFill, Alignment, Font
 
 def process_data(data_dir, master_file, report_file, output_file):
@@ -102,9 +103,23 @@ def process_data(data_dir, master_file, report_file, output_file):
     print("Selesai!")
 
 if __name__ == "__main__":
-    data_dir = r"C:\xampp\htdocs\data"
-    master_file = "12082026.XLSX"
-    report_file = "Report Data BA plantation2 - 01.08.2026 (3).xlsx"
+    data_dir = "."
+    
+    # Cari file master secara otomatis (biasanya yang namanya 12082026 atau sejenisnya)
+    master_files = [f for f in os.listdir(data_dir) if f.endswith('.xlsx') or f.endswith('.XLSX')]
+    # Filter file yang bukan process result dan bukan BA plantation
+    master_candidates = [f for f in master_files if 'Processed' not in f and 'BA plantation' not in f]
+    report_candidates = [f for f in master_files if 'Processed' not in f and 'BA plantation' in f]
+    
+    master_file = master_candidates[0] if master_candidates else "12082026.XLSX"
+    report_file = report_candidates[0] if report_candidates else "Report Data BA plantation2 - 01.08.2026 (3).xlsx"
+    
     output_file = "Report Data BA plantation2 - Processed_Final2.xlsx"
     
-    process_data(data_dir, master_file, report_file, output_file)
+    print(f"Master File: {master_file}")
+    print(f"Report File: {report_file}")
+    
+    if os.path.exists(master_file) and os.path.exists(report_file):
+        process_data(data_dir, master_file, report_file, output_file)
+    else:
+        print("File master atau report tidak ditemukan di direktori saat ini.")
