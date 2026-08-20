@@ -77,7 +77,7 @@ def process_data_logic(master_path, report_path, output_path):
         workbook = writer.book
         green_fill = PatternFill(start_color="00B050", end_color="00B050", fill_type="solid")
         center_alignment = Alignment(horizontal="center", vertical="center")
-        header_font = Font(color="FFFFFF", bold=True)
+        header_font = Font(color="000000", bold=True)
         
         for sheet_name in workbook.sheetnames:
             worksheet = workbook[sheet_name]
