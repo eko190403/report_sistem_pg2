@@ -125,6 +125,9 @@ def process_hko_logic(report_path, output_path):
     date_columns = [col for col in pivot_df.columns if col != 'Grand Total']
     pivot_df['Kehadiran (>20)'] = (pivot_df[date_columns] > 20).sum(axis=1)
     
+    # Buang data yang total kehadirannya 0
+    pivot_df = pivot_df[pivot_df['Kehadiran (>20)'] > 0]
+    
     pivot_df.columns = [col.strftime('%d-%m-%Y') if isinstance(col, pd.Timestamp) or isinstance(col, datetime) else col for col in pivot_df.columns]
     pivot_df = pivot_df.reset_index()
     
