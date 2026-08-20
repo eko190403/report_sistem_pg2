@@ -1,10 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('upload-form');
+    const absensiForm = document.getElementById('upload-form');
+    const hkoForm = document.getElementById('hko-form');
+    
     const masterInput = document.getElementById('master_file');
     const reportInput = document.getElementById('report_file');
+    const hkoInput = document.getElementById('hko_file');
+    
     const masterName = document.getElementById('master-file-name');
     const reportName = document.getElementById('report-file-name');
-    const submitBtn = document.getElementById('submit-btn');
+    const hkoName = document.getElementById('hko-file-name');
     
     // UI States
     const loadingState = document.getElementById('loading-state');
@@ -55,34 +59,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupDragAndDrop('master-drop-area', masterInput, masterName);
     setupDragAndDrop('report-drop-area', reportInput, reportName);
+    setupDragAndDrop('hko-drop-area', hkoInput, hkoName);
 
     masterInput.addEventListener('change', () => updateFileName(masterInput, masterName));
     reportInput.addEventListener('change', () => updateFileName(reportInput, reportName));
+    hkoInput.addEventListener('change', () => updateFileName(hkoInput, hkoName));
 
-    form.addEventListener('submit', async (e) => {
+    async function handleFormSubmit(e, formElement, inputs, url) {
         e.preventDefault();
         
-        if (!masterInput.files.length || !reportInput.files.length) {
-            alert('Silakan pilih kedua file terlebih dahulu!');
-            return;
+        for (let input of inputs) {
+            if (!input.files.length) {
+                alert('Silakan pilih file terlebih dahulu!');
+                return;
+            }
         }
 
-        const formData = new FormData(form);
+        const formData = new FormData(formElement);
 
-        // Hide form, show loading
-        form.style.display = 'none';
+        formElement.style.display = 'none';
         loadingState.style.display = 'block';
 
         try {
-            const response = await fetch('/process', {
+            const response = await fetch(url, {
                 method: 'POST',
                 body: formData
             });
 
             if (response.ok) {
-                // Get filename from header if possible, or use default
                 const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = 'Processed_Report.xlsx';
+                let filename = 'Processed.xlsx';
                 if (contentDisposition && contentDisposition.indexOf('attachment') !== -1) {
                     const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
                     const matches = filenameRegex.exec(contentDisposition);
@@ -91,18 +97,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // Create blob and trigger download
                 const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
+                const objUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
-                a.href = url;
+                a.href = objUrl;
                 a.download = filename;
                 document.body.appendChild(a);
                 a.click();
-                window.URL.revokeObjectURL(url);
+                window.URL.revokeObjectURL(objUrl);
                 
-                // Show success
                 loadingState.style.display = 'none';
                 successState.style.display = 'block';
             } else {
@@ -115,19 +119,48 @@ document.addEventListener('DOMContentLoaded', () => {
             errorState.style.display = 'block';
             errorMessage.textContent = error.message;
         }
-    });
+    }
+
+    absensiForm.addEventListener('submit', (e) => handleFormSubmit(e, absensiForm, [masterInput, reportInput], '/process'));
+    hkoForm.addEventListener('submit', (e) => handleFormSubmit(e, hkoForm, [hkoInput], '/process_hko'));
 });
 
 function resetForm() {
-    const form = document.getElementById('upload-form');
+    const absensiForm = document.getElementById('upload-form');
+    const hkoForm = document.getElementById('hko-form');
     
-    // Reset file inputs
-    form.reset();
+    absensiForm.reset();
+    hkoForm.reset();
+    
     document.getElementById('master-file-name').textContent = 'Belum ada file dipilih';
     document.getElementById('report-file-name').textContent = 'Belum ada file dipilih';
+    document.getElementById('hko-file-name').textContent = 'Belum ada file dipilih';
     
-    // Reset UI states
     document.getElementById('success-state').style.display = 'none';
     document.getElementById('error-state').style.display = 'none';
-    form.style.display = 'block';
+    
+    // Restore the correct form based on active tab
+    if (document.getElementById('tab-absensi').classList.contains('active')) {
+        absensiForm.style.display = 'block';
+    } else {
+        hkoForm.style.display = 'block';
+    }
+}
+
+function switchTab(tabId) {
+    document.getElementById('tab-absensi').classList.remove('active');
+    document.getElementById('tab-hko').classList.remove('active');
+    
+    document.getElementById('upload-form').style.display = 'none';
+    document.getElementById('hko-form').style.display = 'none';
+    document.getElementById('success-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'none';
+    
+    if (tabId === 'absensi') {
+        document.getElementById('tab-absensi').classList.add('active');
+        document.getElementById('upload-form').style.display = 'block';
+    } else {
+        document.getElementById('tab-hko').classList.add('active');
+        document.getElementById('hko-form').style.display = 'block';
+    }
 }

@@ -24,6 +24,11 @@
         </header>
 
         <main>
+            <div class="tabs-container">
+                <button class="tab-btn active" id="tab-absensi" onclick="switchTab('absensi')">Laporan Absensi</button>
+                <button class="tab-btn" id="tab-hko" onclick="switchTab('hko')">Laporan HKO</button>
+            </div>
+
             <form id="upload-form" enctype="multipart/form-data">
                 <div class="file-inputs">
                     <!-- Master File -->
@@ -46,8 +51,26 @@
                 </div>
 
                 <div class="action-area">
-                    <button type="submit" id="submit-btn">
-                        <span class="btn-text">PROSES DATA</span>
+                    <button type="submit" class="submit-btn" id="submit-btn">
+                        <span class="btn-text">PROSES ABSENSI</span>
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </button>
+                </div>
+            </form>
+
+            <form id="hko-form" enctype="multipart/form-data" style="display: none;">
+                <div class="file-inputs" style="grid-template-columns: 1fr;">
+                    <div class="file-drop-area" id="hko-drop-area">
+                        <i class="fa-solid fa-money-check-dollar icon-upload"></i>
+                        <h3>Data Laporan HKO</h3>
+                        <p class="file-desc">Pilih file HKO mentah (misal: HKO4.XLSX)</p>
+                        <input type="file" id="hko_file" name="hko_file" accept=".xlsx, .xls" required>
+                        <span class="file-name" id="hko-file-name">Belum ada file dipilih</span>
+                    </div>
+                </div>
+                <div class="action-area">
+                    <button type="submit" class="submit-btn" id="submit-hko-btn">
+                        <span class="btn-text">PROSES HKO</span>
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
                     </button>
                 </div>

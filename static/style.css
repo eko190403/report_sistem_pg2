@@ -73,6 +73,34 @@ header p {
     font-size: 1.25rem;
 }
 
+.tabs-container {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.tab-btn {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: 2px solid transparent;
+    border-bottom-color: var(--border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    color: var(--primary);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
 .file-inputs {
     display: flex;
     gap: 3rem;
@@ -153,7 +181,7 @@ header p {
     margin-top: 1rem;
 }
 
-#submit-btn, .reset-btn {
+.submit-btn, .reset-btn {
     background: var(--primary);
     color: #FFFFFF;
     border: none;
@@ -168,11 +196,11 @@ header p {
     gap: 0.8rem;
 }
 
-#submit-btn:hover, .reset-btn:hover {
+.submit-btn:hover, .reset-btn:hover {
     background: var(--primary-hover);
 }
 
-#submit-btn:disabled {
+.submit-btn:disabled {
     background: #9CA3AF;
     cursor: not-allowed;
 }

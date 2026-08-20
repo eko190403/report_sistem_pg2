@@ -6,6 +6,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import openpyxl
 import tempfile
 import shutil
+from datetime import datetime
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -109,6 +110,49 @@ def process_data_logic(master_path, report_path, output_path):
     wb.save(output_path)
     return output_path
 
+def process_hko_logic(report_path, output_path):
+    df = pd.read_excel(report_path, sheet_name='Sheet1')
+    
+    if 'Pers.No.' not in df.columns or 'Start Date' not in df.columns or 'Total Biaya' not in df.columns:
+        raise Exception("Kolom 'Pers.No.', 'Start Date', atau 'Total Biaya' tidak ditemukan di file HKO.")
+        
+    df = df.dropna(subset=['Pers.No.', 'Start Date'])
+    
+    pivot_df = pd.pivot_table(df, values='Total Biaya', index=['Pers.No.'], columns=['Start Date'], aggfunc='sum')
+    
+    pivot_df['Grand Total'] = pivot_df.sum(axis=1)
+    
+    date_columns = [col for col in pivot_df.columns if col != 'Grand Total']
+    pivot_df['Kehadiran (>20)'] = (pivot_df[date_columns] > 20).sum(axis=1)
+    
+    pivot_df.columns = [col.strftime('%d-%m-%Y') if isinstance(col, pd.Timestamp) or isinstance(col, datetime) else col for col in pivot_df.columns]
+    pivot_df = pivot_df.reset_index()
+    
+    pivot_df = pivot_df.fillna("")
+    
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        pivot_df.to_excel(writer, sheet_name='Pivot HKO', index=False)
+        
+        workbook = writer.book
+        worksheet = writer.sheets['Pivot HKO']
+        
+        green_fill = PatternFill(start_color="00B050", end_color="00B050", fill_type="solid")
+        center_alignment = Alignment(horizontal="center", vertical="center")
+        header_font = Font(color="000000", bold=True)
+        
+        for row in worksheet.iter_rows():
+            for cell in row:
+                cell.alignment = center_alignment
+                if cell.row == 1:
+                    cell.fill = green_fill
+                    cell.font = header_font
+                    
+        for col in worksheet.columns:
+            column = col[0].column_letter
+            worksheet.column_dimensions[column].width = 15
+            
+    return output_path
+
 @app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
@@ -138,6 +182,29 @@ def process_files():
     
     try:
         process_data_logic(master_path, report_path, output_path)
+        return send_file(output_path, as_attachment=True, download_name=output_filename)
+    except Exception as e:
+        return str(e), 500
+
+@app.route('/process_hko', methods=['POST'])
+def process_hko():
+    if 'hko_file' not in request.files:
+        return "Missing file", 400
+        
+    hko_file = request.files['hko_file']
+    if hko_file.filename == '':
+        return "No selected file", 400
+        
+    temp_dir = tempfile.mkdtemp()
+    hko_path = os.path.join(temp_dir, secure_filename(hko_file.filename))
+    
+    output_filename = "Processed_HKO_" + secure_filename(hko_file.filename)
+    output_path = os.path.join(temp_dir, output_filename)
+    
+    hko_file.save(hko_path)
+    
+    try:
+        process_hko_logic(hko_path, output_path)
         return send_file(output_path, as_attachment=True, download_name=output_filename)
     except Exception as e:
         return str(e), 500
