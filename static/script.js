@@ -10,8 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportName = document.getElementById('report-file-name');
     const hkoName = document.getElementById('hko-file-name');
     
-    // UI States
-    const loadingState = document.getElementById('loading-state');
+    const loaderOverlay = document.getElementById('loader-overlay');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
     const successState = document.getElementById('success-state');
     const errorState = document.getElementById('error-state');
     const errorMessage = document.getElementById('error-message');
@@ -90,15 +91,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(formElement);
 
         formElement.style.display = 'none';
-        loadingState.style.display = 'block';
+        
+        // Reset progress bar
+        loaderOverlay.classList.add('active');
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
+        
+        // Kalkulasi estimasi waktu (4 detik per file dengan engine calamine)
+        let numFiles = 0;
+        for (let input of inputs) {
+            numFiles += input.files.length;
+        }
+        const estimatedTimeMs = Math.max(3000, numFiles * 4000);
+        const updateInterval = 100; // update setiap 100ms
+        const totalSteps = estimatedTimeMs / updateInterval;
+        const increment = 95 / totalSteps;
+        
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 95) {
+                progress += increment;
+                let currentProgress = Math.min(95, progress + (Math.random() * 1.5));
+                progressBar.style.width = currentProgress + '%';
+                progressText.textContent = Math.floor(currentProgress) + '%';
+            }
+        }, updateInterval);
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 body: formData
             });
+            
+            clearInterval(progressInterval);
 
             if (response.ok) {
+                // Selesaikan progress bar
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+                
                 const contentDisposition = response.headers.get('Content-Disposition');
                 let filename = 'Processed.xlsx';
                 if (contentDisposition && contentDisposition.indexOf('attachment') !== -1) {
@@ -119,15 +150,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.click();
                 window.URL.revokeObjectURL(objUrl);
                 
-                loadingState.style.display = 'none';
-                successState.style.display = 'block';
+                setTimeout(() => {
+                    loaderOverlay.classList.remove('active');
+                    successState.style.display = 'block';
+                }, 500);
+                
             } else {
                 const errorText = await response.text();
                 throw new Error(errorText || 'Gagal memproses file.');
             }
         } catch (error) {
             console.error(error);
-            loadingState.style.display = 'none';
+            clearInterval(progressInterval);
+            loaderOverlay.classList.remove('active');
             errorState.style.display = 'block';
             errorMessage.textContent = error.message;
         }
