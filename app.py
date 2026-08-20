@@ -133,11 +133,12 @@ def process_hko_logic(report_path, output_path):
     
     pivot_df = pivot_df.fillna("")
     
-    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-        # Tulis data awal / mentahan
-        df.to_excel(writer, sheet_name='Data Awal', index=False)
-        
-        # Tulis hasil pivot
+    # Cara super cepat: Copy file mentahnya langsung, baru kita tambahkan Sheet Pivot!
+    import shutil
+    shutil.copy(report_path, output_path)
+    
+    with pd.ExcelWriter(output_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+        # Tulis hasil pivot saja
         pivot_df.to_excel(writer, sheet_name='Pivot HKO', index=False)
         
         workbook = writer.book
