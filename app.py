@@ -110,55 +110,54 @@ def process_data_logic(master_path, report_path, output_path):
     wb.save(output_path)
     return output_path
 
-def process_hko_logic(report_path, output_path):
-    df = pd.read_excel(report_path, sheet_name='Sheet1')
-    
-    if 'Pers.No.' not in df.columns or 'Start Date' not in df.columns or 'Total Biaya' not in df.columns:
-        raise Exception("Kolom 'Pers.No.', 'Start Date', atau 'Total Biaya' tidak ditemukan di file HKO.")
+def process_hko_logic(report_paths, output_path):
+    dfs = []
+    for path in report_paths:
+        df = pd.read_excel(path, sheet_name='Sheet1')
+        if 'Pers.No.' not in df.columns or 'Start Date' not in df.columns or 'Total Biaya' not in df.columns:
+            raise Exception("Kolom 'Pers.No.', 'Start Date', atau 'Total Biaya' tidak ditemukan di salah satu file HKO.")
+        df = df.dropna(subset=['Pers.No.', 'Start Date'])
         
-    df = df.dropna(subset=['Pers.No.', 'Start Date'])
+        # Ensure Start Date is datetime
+        df['Start Date'] = pd.to_datetime(df['Start Date'])
+        dfs.append(df)
+        
+    combined_df = pd.concat(dfs, ignore_index=True)
     
-    pivot_df = pd.pivot_table(df, values='Total Biaya', index=['Pers.No.'], columns=['Start Date'], aggfunc='sum')
+    # 1. Jumlahkan Total Biaya per hari per orang (jika ada yang dobel di hari yang sama)
+    daily_sum = combined_df.groupby(['Pers.No.', 'Start Date'])['Total Biaya'].sum().reset_index()
     
-    pivot_df['Grand Total'] = pivot_df.sum(axis=1)
+    # 2. Saring hanya hari yang Total Biayanya > 20
+    valid_days = daily_sum[daily_sum['Total Biaya'] > 20].copy()
     
-    date_columns = [col for col in pivot_df.columns if col != 'Grand Total']
-    pivot_df['Kehadiran (>20)'] = (pivot_df[date_columns] > 20).sum(axis=1)
+    # 3. Ekstrak Bulan dan Tahun
+    valid_days['Bulan'] = valid_days['Start Date'].dt.month
+    valid_days['Tahun'] = valid_days['Start Date'].dt.year
     
-    # Buang data yang total kehadirannya 0
-    pivot_df = pivot_df[pivot_df['Kehadiran (>20)'] > 0]
+    # 4. Hitung Kehadiran (jumlah hari valid) per Bulan per Tahun
+    result_df = valid_days.groupby(['Pers.No.', 'Bulan', 'Tahun']).size().reset_index(name='Kehadiran')
     
-    pivot_df.columns = [col.strftime('%d-%m-%Y') if isinstance(col, pd.Timestamp) or isinstance(col, datetime) else col for col in pivot_df.columns]
-    pivot_df = pivot_df.reset_index()
-    
-    pivot_df = pivot_df.fillna("")
-    
-    # Cara super cepat: Copy file mentahnya langsung, baru kita tambahkan Sheet Pivot!
-    import shutil
-    shutil.copy(report_path, output_path)
-    
-    with pd.ExcelWriter(output_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-        # Tulis hasil pivot saja
-        pivot_df.to_excel(writer, sheet_name='Pivot HKO', index=False)
+    # Tulis hasil akhirnya ke Excel
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        result_df.to_excel(writer, sheet_name='Rekap HKO', index=False)
         
         workbook = writer.book
-        worksheet_pivot = writer.sheets['Pivot HKO']
+        worksheet = writer.sheets['Rekap HKO']
         
         green_fill = PatternFill(start_color="00B050", end_color="00B050", fill_type="solid")
         center_alignment = Alignment(horizontal="center", vertical="center")
         header_font = Font(color="000000", bold=True)
         
-        # Styling Pivot HKO
-        for row in worksheet_pivot.iter_rows():
+        for row in worksheet.iter_rows():
             for cell in row:
                 cell.alignment = center_alignment
                 if cell.row == 1:
                     cell.fill = green_fill
                     cell.font = header_font
                     
-        for col in worksheet_pivot.columns:
+        for col in worksheet.columns:
             column = col[0].column_letter
-            worksheet_pivot.column_dimensions[column].width = 15
+            worksheet.column_dimensions[column].width = 15
             
     return output_path
 
@@ -201,22 +200,28 @@ def process_hko():
     if 'hko_file' not in request.files:
         return "Missing file", 400
         
-    hko_file = request.files['hko_file']
-    if hko_file.filename == '':
+    hko_files = request.files.getlist('hko_file')
+    if not hko_files or hko_files[0].filename == '':
         return "No selected file", 400
         
     temp_dir = tempfile.mkdtemp()
-    hko_path = os.path.join(temp_dir, secure_filename(hko_file.filename))
+    
+    hko_paths = []
+    for f in hko_files:
+        path = os.path.join(temp_dir, secure_filename(f.filename))
+        f.save(path)
+        hko_paths.append(path)
     
     # Pastikan ekstensi selalu lowercase agar tidak error di pandas ExcelWriter
-    base_name = secure_filename(hko_file.filename).rsplit('.', 1)[0]
+    base_name = secure_filename(hko_files[0].filename).rsplit('.', 1)[0]
+    if len(hko_files) > 1:
+        base_name += f"_dan_{len(hko_files)-1}_file_lainnya"
+        
     output_filename = "Processed_HKO_" + base_name + ".xlsx"
     output_path = os.path.join(temp_dir, output_filename)
     
-    hko_file.save(hko_path)
-    
     try:
-        process_hko_logic(hko_path, output_path)
+        process_hko_logic(hko_paths, output_path)
         return send_file(output_path, as_attachment=True, download_name=output_filename)
     except Exception as e:
         return str(e), 500

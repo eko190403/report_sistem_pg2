@@ -47,7 +47,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateFileName(input, displayElement) {
         if (input.files.length > 0) {
-            displayElement.textContent = input.files[0].name;
+            if (input.files.length > 6) {
+                alert('Maksimal hanya boleh memilih 6 file!');
+                input.value = '';
+                displayElement.textContent = 'Belum ada file dipilih';
+                displayElement.style.color = 'var(--primary)';
+                displayElement.style.background = 'rgba(0, 242, 96, 0.1)';
+                return;
+            }
+            if (input.files.length === 1) {
+                displayElement.textContent = input.files[0].name;
+            } else {
+                displayElement.textContent = `${input.files.length} file terpilih`;
+            }
             displayElement.style.color = 'var(--text)';
             displayElement.style.background = 'rgba(255, 255, 255, 0.1)';
         } else {
