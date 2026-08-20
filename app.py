@@ -18,7 +18,7 @@ os.makedirs('static', exist_ok=True)
 
 def process_data_logic(master_path, report_path, output_path):
     # 1. Load Master Data
-    master_df = pd.read_excel(master_path, sheet_name='Sheet1')
+    master_df = pd.read_excel(master_path, sheet_name='Sheet1', engine='calamine')
     master_df['Pers.No.'] = master_df['Pers.No.'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     master_df['Kode Mandor'] = master_df['Kode Mandor'].fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     
@@ -30,7 +30,7 @@ def process_data_logic(master_path, report_path, output_path):
     name_lookup_kode = master_mandor.set_index('Kode Mandor')['Nama mandor'].to_dict()
 
     # 2. Load Report Data
-    xl_report = pd.ExcelFile(report_path)
+    xl_report = pd.ExcelFile(report_path, engine='calamine')
     report_df = xl_report.parse('Worksheet')
     
     report_df['KIT TK'] = report_df['KIT TK'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
@@ -113,7 +113,7 @@ def process_data_logic(master_path, report_path, output_path):
 def process_hko_logic(report_paths, output_path):
     dfs = []
     for path in report_paths:
-        df = pd.read_excel(path, sheet_name='Sheet1')
+        df = pd.read_excel(path, sheet_name='Sheet1', engine='calamine')
         if 'Pers.No.' not in df.columns or 'Start Date' not in df.columns or 'Total Biaya' not in df.columns:
             raise Exception("Kolom 'Pers.No.', 'Start Date', atau 'Total Biaya' tidak ditemukan di salah satu file HKO.")
         df = df.dropna(subset=['Pers.No.', 'Start Date'])
@@ -136,6 +136,9 @@ def process_hko_logic(report_paths, output_path):
     
     # 4. Hitung Kehadiran (jumlah hari valid) per Bulan per Tahun
     result_df = valid_days.groupby(['Pers.No.', 'Bulan', 'Tahun']).size().reset_index(name='Kehadiran')
+    
+    # 5. Urutkan berdasarkan Tahun, Bulan, lalu Pers.No. (Sesuai permintaan: bulan 4 kumpul dulu, baru bulan 5, dst)
+    result_df = result_df.sort_values(by=['Tahun', 'Bulan', 'Pers.No.'])
     
     # Tulis hasil akhirnya ke Excel
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
