@@ -168,13 +168,14 @@ def process_files():
     if master_file.filename == '' or report_file.filename == '':
         return "No selected file", 400
         
-    # Use temporary directory for processing
     temp_dir = tempfile.mkdtemp()
     
     master_path = os.path.join(temp_dir, secure_filename(master_file.filename))
     report_path = os.path.join(temp_dir, secure_filename(report_file.filename))
     
-    output_filename = "Processed_" + secure_filename(report_file.filename)
+    # Pastikan ekstensi selalu lowercase agar tidak error di pandas ExcelWriter
+    base_name = secure_filename(report_file.filename).rsplit('.', 1)[0]
+    output_filename = "Processed_" + base_name + ".xlsx"
     output_path = os.path.join(temp_dir, output_filename)
     
     master_file.save(master_path)
@@ -198,7 +199,9 @@ def process_hko():
     temp_dir = tempfile.mkdtemp()
     hko_path = os.path.join(temp_dir, secure_filename(hko_file.filename))
     
-    output_filename = "Processed_HKO_" + secure_filename(hko_file.filename)
+    # Pastikan ekstensi selalu lowercase agar tidak error di pandas ExcelWriter
+    base_name = secure_filename(hko_file.filename).rsplit('.', 1)[0]
+    output_filename = "Processed_HKO_" + base_name + ".xlsx"
     output_path = os.path.join(temp_dir, output_filename)
     
     hko_file.save(hko_path)
