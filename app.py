@@ -2,10 +2,8 @@ import os
 from flask import Flask, render_template, request, send_file, flash, redirect, url_for
 import pandas as pd
 from openpyxl.styles import PatternFill, Alignment, Font
-from openpyxl.utils.dataframe import dataframe_to_rows
-import openpyxl
 import tempfile
-import shutil
+import os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -61,57 +59,51 @@ def process_data_logic(master_path, report_path, output_path):
     
     # Urutkan data berdasarkan Totall (Terbesar ke Terkecil) lalu berdasarkan Nama TK (A-Z)
     report_df = report_df.sort_values(by=['Totall', 'Nama TK'], ascending=[False, True])
-    
-    # Ganti NaNs dengan string kosong agar tidak error di openpyxl
-    report_df = report_df.fillna("")
 
-    # Duplikat file asli agar Sheet Pivot bawaan tidak terhapus
-    shutil.copy(report_path, output_path)
+    # Buat Pivot Summary secara manual via Python
+    pivot_df = report_df.groupby(['Nama TK', 'nama mandor', 'Jabatan', 'bagian', 'Date Shift'])['Totall'].sum().reset_index()
+    pivot_df = pivot_df.sort_values(
+        by=['Totall', 'Nama TK', 'nama mandor', 'Jabatan', 'bagian', 'Date Shift'], 
+        ascending=[False, True, True, True, True, True]
+    )
 
-    # Buka file hasil kopian tersebut menggunakan openpyxl
-    wb = openpyxl.load_workbook(output_path)
-    
-    # Hapus sheet buatan python lama jika masih ada (opsional)
-    if 'Pivot Summary' in wb.sheetnames:
-        del wb['Pivot Summary']
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        report_df.to_excel(writer, sheet_name='Worksheet', index=False)
+        pivot_df.to_excel(writer, sheet_name='Pivot Summary', index=False)
         
-    if 'Worksheet' in wb.sheetnames:
-        ws = wb['Worksheet']
-        # Hapus data lama di Worksheet
-        ws.delete_rows(1, ws.max_row)
-        
-        # Tulis data baru dari pandas DataFrame
-        for r_idx, row in enumerate(dataframe_to_rows(report_df, index=False, header=True), 1):
-            for c_idx, value in enumerate(row, 1):
-                ws.cell(row=r_idx, column=c_idx, value=value)
+        # Copy sheet lain jika ada (selain Worksheet)
+        for sheet_name in xl_report.sheet_names:
+            if sheet_name != 'Worksheet' and sheet_name != 'Sheet3': 
+                other_df = xl_report.parse(sheet_name)
+                other_df.to_excel(writer, sheet_name=sheet_name, index=False)
                 
         # Format excel cells
+        workbook = writer.book
         green_fill = PatternFill(start_color="00B050", end_color="00B050", fill_type="solid")
         center_alignment = Alignment(horizontal="center", vertical="center")
         header_font = Font(color="000000", bold=True)
         
-        for row in ws.iter_rows():
-            for cell in row:
-                cell.alignment = center_alignment
-                if cell.row == 1:
-                    cell.fill = green_fill
-                    cell.font = header_font
-                    
-        # Auto-adjust column widths roughly
-        for col in ws.columns:
-            max_length = 0
-            column = col[0].column_letter # Get the column name
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            ws.column_dimensions[column].width = adjusted_width
-            
-    # Simpan kembali
-    wb.save(output_path)
+        for sheet_name in workbook.sheetnames:
+            worksheet = workbook[sheet_name]
+            for row in worksheet.iter_rows():
+                for cell in row:
+                    cell.alignment = center_alignment
+                    if cell.row == 1:
+                        cell.fill = green_fill
+                        cell.font = header_font
+                        
+            # Auto-adjust column widths roughly
+            for col in worksheet.columns:
+                max_length = 0
+                column = col[0].column_letter
+                for cell in col:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                worksheet.column_dimensions[column].width = max_length + 2
+                
     return output_path
 
 @app.route('/', methods=['GET'])
