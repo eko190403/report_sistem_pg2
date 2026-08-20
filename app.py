@@ -10,6 +10,22 @@ import shutil
 from datetime import datetime
 from werkzeug.utils import secure_filename
 
+def safe_read_excel(path, **kwargs):
+    try:
+        return pd.read_excel(path, engine='calamine', **kwargs)
+    except Exception as e:
+        if "engine" in str(e).lower() or "calamine" in str(e).lower():
+            return pd.read_excel(path, **kwargs)
+        raise e
+
+def safe_excel_file(path, **kwargs):
+    try:
+        return pd.ExcelFile(path, engine='calamine', **kwargs)
+    except Exception as e:
+        if "engine" in str(e).lower() or "calamine" in str(e).lower():
+            return pd.ExcelFile(path, **kwargs)
+        raise e
+
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_change_me_in_production'
 
@@ -19,7 +35,7 @@ os.makedirs('static', exist_ok=True)
 
 def process_data_logic(master_path, report_path, output_path):
     # 1. Load Master Data
-    master_df = pd.read_excel(master_path, sheet_name='Sheet1', engine='calamine')
+    master_df = safe_read_excel(master_path, sheet_name='Sheet1')
     master_df['Pers.No.'] = master_df['Pers.No.'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     master_df['Kode Mandor'] = master_df['Kode Mandor'].fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     
@@ -31,7 +47,7 @@ def process_data_logic(master_path, report_path, output_path):
     name_lookup_kode = master_mandor.set_index('Kode Mandor')['Nama mandor'].to_dict()
 
     # 2. Load Report Data
-    xl_report = pd.ExcelFile(report_path, engine='calamine')
+    xl_report = safe_excel_file(report_path)
     report_df = xl_report.parse('Worksheet')
     
     report_df['KIT TK'] = report_df['KIT TK'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
@@ -114,7 +130,7 @@ def process_data_logic(master_path, report_path, output_path):
 def process_hko_logic(report_paths, output_path):
     dfs = []
     for path in report_paths:
-        df = pd.read_excel(path, sheet_name='Sheet1', engine='calamine')
+        df = safe_read_excel(path, sheet_name='Sheet1')
         if 'Pers.No.' not in df.columns or 'Start Date' not in df.columns or 'Total Biaya' not in df.columns:
             raise Exception("Kolom 'Pers.No.', 'Start Date', atau 'Total Biaya' tidak ditemukan di salah satu file HKO.")
         df = df.dropna(subset=['Pers.No.', 'Start Date'])
