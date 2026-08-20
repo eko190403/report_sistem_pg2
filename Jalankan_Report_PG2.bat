@@ -7,9 +7,9 @@ echo   Anda masih menggunakan websitenya.
 echo ====================================================
 echo.
 
-:: Memastikan library engine super cepat (calamine) sudah terinstal
-echo Menyiapkan mesin pemroses kecepatan tinggi...
-python -m pip install python-calamine -q
+:: Memastikan semua library pendukung sistem sudah terinstal (termasuk server Waitress & engine Calamine)
+echo Menyiapkan mesin server dan mengecek kelengkapan sistem...
+python -m pip install -r requirements.txt -q
 
 :: Menjalankan server flask di belakang layar pada terminal ini
 start /b python app.py

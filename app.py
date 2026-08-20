@@ -1,4 +1,5 @@
 import os
+import io
 from flask import Flask, render_template, request, send_file, flash, redirect, url_for
 import pandas as pd
 from openpyxl.styles import PatternFill, Alignment, Font
@@ -194,9 +195,13 @@ def process_files():
     
     try:
         process_data_logic(master_path, report_path, output_path)
-        return send_file(output_path, as_attachment=True, download_name=output_filename)
+        with open(output_path, 'rb') as f:
+            data = f.read()
+        return send_file(io.BytesIO(data), mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name=output_filename)
     except Exception as e:
         return str(e), 500
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 @app.route('/process_hko', methods=['POST'])
 def process_hko():
@@ -225,9 +230,18 @@ def process_hko():
     
     try:
         process_hko_logic(hko_paths, output_path)
-        return send_file(output_path, as_attachment=True, download_name=output_filename)
+        with open(output_path, 'rb') as f:
+            data = f.read()
+        return send_file(io.BytesIO(data), mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name=output_filename)
     except Exception as e:
         return str(e), 500
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    from waitress import serve
+    print("=========================================================")
+    print(" Server Report Sistem PG2 (Production Mode) Aktif!")
+    print(" Silakan buka browser di: http://127.0.0.1:5000")
+    print("=========================================================")
+    serve(app, host='127.0.0.1', port=5000, threads=8)
