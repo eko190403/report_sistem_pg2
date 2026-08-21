@@ -26,7 +26,17 @@ def safe_excel_file(path, **kwargs):
             return pd.ExcelFile(path, **kwargs)
         raise e
 
-app = Flask(__name__)
+import sys
+
+if getattr(sys, 'frozen', False):
+    # If the application is run as a bundle (PyInstaller)
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    static_folder = os.path.join(sys._MEIPASS, 'static')
+    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+else:
+    # If run normally
+    app = Flask(__name__)
+
 app.secret_key = 'super_secret_key_change_me_in_production'
 
 # Pastikan folder templates dan static ada
@@ -256,8 +266,21 @@ def process_hko():
 
 if __name__ == '__main__':
     from waitress import serve
+    import threading
+    import webbrowser
+    import time
+    
+    def open_browser():
+        time.sleep(1.5) # Beri waktu sebentar agar server Waitress nyala duluan
+        webbrowser.open_new("http://127.0.0.1:5000")
+
     print("=========================================================")
     print(" Server Report Sistem PG2 (Production Mode) Aktif!")
     print(" Silakan buka browser di: http://127.0.0.1:5000")
     print("=========================================================")
+    
+    # Jalankan perintah pembuka browser di background
+    threading.Thread(target=open_browser, daemon=True).start()
+    
+    # Jalankan server
     serve(app, host='127.0.0.1', port=5000, threads=8)
