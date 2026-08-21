@@ -245,7 +245,7 @@ def process_overtime_logic(input_path, output_path):
     df = pd.read_excel(input_path, engine='calamine')
     
     if 'Date' in df.columns:
-        df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.strftime('%Y-%m-%d')
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.date
     
     
     # Sheet 1: Data Absence
@@ -293,6 +293,8 @@ def process_overtime_logic(input_path, output_path):
             for row in ws.iter_rows(min_row=2):
                 for cell in row:
                     cell.border = thin_border
+                    if ws.cell(row=1, column=cell.column).value == 'Date':
+                        cell.number_format = 'yyyy-mm-dd'
                     
             # Auto-fit columns
             for column_cells in ws.columns:
