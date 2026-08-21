@@ -1,14 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     const absensiForm = document.getElementById('upload-form');
     const hkoForm = document.getElementById('hko-form');
+    const overtimeForm = document.getElementById('overtime-form');
     
     const masterInput = document.getElementById('master_file');
     const reportInput = document.getElementById('report_file');
     const hkoInput = document.getElementById('hko_file');
+    const overtimeInput = document.getElementById('overtime_file');
     
     const masterName = document.getElementById('master-file-name');
     const reportName = document.getElementById('report-file-name');
     const hkoName = document.getElementById('hko-file-name');
+    const overtimeName = document.getElementById('overtime-file-name');
     
     const loaderOverlay = document.getElementById('loader-overlay');
     const progressBar = document.getElementById('progress-bar');
@@ -73,10 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDragAndDrop('master-drop-area', masterInput, masterName);
     setupDragAndDrop('report-drop-area', reportInput, reportName);
     setupDragAndDrop('hko-drop-area', hkoInput, hkoName);
+    setupDragAndDrop('overtime-drop-area', overtimeInput, overtimeName);
 
     masterInput.addEventListener('change', () => updateFileName(masterInput, masterName));
     reportInput.addEventListener('change', () => updateFileName(reportInput, reportName));
     hkoInput.addEventListener('change', () => updateFileName(hkoInput, hkoName));
+    overtimeInput.addEventListener('change', () => updateFileName(overtimeInput, overtimeName));
 
     async function handleFormSubmit(e, formElement, inputs, url) {
         e.preventDefault();
@@ -170,18 +175,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     absensiForm.addEventListener('submit', (e) => handleFormSubmit(e, absensiForm, [masterInput, reportInput], '/process'));
     hkoForm.addEventListener('submit', (e) => handleFormSubmit(e, hkoForm, [hkoInput], '/process_hko'));
+    overtimeForm.addEventListener('submit', (e) => handleFormSubmit(e, overtimeForm, [overtimeInput], '/process_overtime'));
 });
 
 function resetForm() {
     const absensiForm = document.getElementById('upload-form');
     const hkoForm = document.getElementById('hko-form');
+    const overtimeForm = document.getElementById('overtime-form');
     
     absensiForm.reset();
     hkoForm.reset();
+    overtimeForm.reset();
     
     document.getElementById('master-file-name').textContent = 'Belum ada file dipilih';
     document.getElementById('report-file-name').textContent = 'Belum ada file dipilih';
     document.getElementById('hko-file-name').textContent = 'Belum ada file dipilih';
+    document.getElementById('overtime-file-name').textContent = 'Belum ada file dipilih';
     
     document.getElementById('success-state').style.display = 'none';
     document.getElementById('error-state').style.display = 'none';
@@ -189,25 +198,32 @@ function resetForm() {
     // Restore the correct form based on active tab
     if (document.getElementById('tab-absensi').classList.contains('active')) {
         absensiForm.style.display = 'block';
-    } else {
+    } else if (document.getElementById('tab-hko').classList.contains('active')) {
         hkoForm.style.display = 'block';
+    } else {
+        overtimeForm.style.display = 'block';
     }
 }
 
 function switchTab(tabId) {
     document.getElementById('tab-absensi').classList.remove('active');
     document.getElementById('tab-hko').classList.remove('active');
+    document.getElementById('tab-overtime').classList.remove('active');
     
     document.getElementById('upload-form').style.display = 'none';
     document.getElementById('hko-form').style.display = 'none';
+    document.getElementById('overtime-form').style.display = 'none';
     document.getElementById('success-state').style.display = 'none';
     document.getElementById('error-state').style.display = 'none';
     
     if (tabId === 'absensi') {
         document.getElementById('tab-absensi').classList.add('active');
         document.getElementById('upload-form').style.display = 'block';
-    } else {
+    } else if (tabId === 'hko') {
         document.getElementById('tab-hko').classList.add('active');
         document.getElementById('hko-form').style.display = 'block';
+    } else {
+        document.getElementById('tab-overtime').classList.add('active');
+        document.getElementById('overtime-form').style.display = 'block';
     }
 }

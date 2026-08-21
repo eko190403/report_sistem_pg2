@@ -268,6 +268,35 @@ def process_hko():
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
+@app.route('/process_overtime', methods=['POST'])
+def process_overtime():
+    if 'overtime_file' not in request.files:
+        return "Missing file", 400
+        
+    overtime_file = request.files['overtime_file']
+    if overtime_file.filename == '':
+        return "No selected file", 400
+        
+    temp_dir = tempfile.mkdtemp()
+    
+    input_path = os.path.join(temp_dir, secure_filename(overtime_file.filename))
+    
+    base_name = secure_filename(overtime_file.filename).rsplit('.', 1)[0]
+    output_filename = "Processed_" + base_name + ".xlsx"
+    output_path = os.path.join(temp_dir, output_filename)
+    
+    overtime_file.save(input_path)
+    
+    try:
+        process_overtime_logic(input_path, output_path)
+        with open(output_path, 'rb') as f:
+            data = f.read()
+        return send_file(io.BytesIO(data), mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name=output_filename)
+    except Exception as e:
+        return str(e), 500
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
     import threading

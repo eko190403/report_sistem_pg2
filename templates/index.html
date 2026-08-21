@@ -47,6 +47,7 @@
             <div class="tabs-container">
                 <button class="tab-btn active" id="tab-absensi" onclick="switchTab('absensi')">Laporan Absensi</button>
                 <button class="tab-btn" id="tab-hko" onclick="switchTab('hko')">Laporan HKO</button>
+                <button class="tab-btn" id="tab-overtime" onclick="switchTab('overtime')">Laporan Overtime</button>
             </div>
 
             <form id="upload-form" enctype="multipart/form-data">
@@ -73,6 +74,24 @@
                 <div class="action-area">
                     <button type="submit" class="submit-btn" id="submit-btn">
                         <span class="btn-text">PROSES ABSENSI</span>
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </button>
+                </div>
+            </form>
+
+            <form id="overtime-form" enctype="multipart/form-data" style="display: none;">
+                <div class="file-inputs" style="grid-template-columns: 1fr;">
+                    <div class="file-drop-area" id="overtime-drop-area">
+                        <i class="fa-solid fa-business-time icon-upload"></i>
+                        <h3>Data Laporan Overtime & Piket</h3>
+                        <p class="file-desc">Pilih 1 file Overtime mentah</p>
+                        <input type="file" id="overtime_file" name="overtime_file" accept=".xlsx, .xls" required>
+                        <span class="file-name" id="overtime-file-name">Belum ada file dipilih</span>
+                    </div>
+                </div>
+                <div class="action-area">
+                    <button type="submit" class="submit-btn" id="submit-overtime-btn">
+                        <span class="btn-text">PROSES OVERTIME</span>
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
                     </button>
                 </div>
