@@ -158,6 +158,11 @@ def process_hko_logic(report_paths, output_path):
     # 1. Jumlahkan Total Biaya per hari per orang (jika ada yang dobel di hari yang sama)
     daily_sum = combined_df.groupby(['Pers.No.', 'Start Date'])['Total Biaya'].sum().reset_index()
     
+    # 1b. Dapatkan daftar semua (Pers.No, Bulan, Tahun) dari data mentah
+    combined_df['Bulan'] = combined_df['Start Date'].dt.month
+    combined_df['Tahun'] = combined_df['Start Date'].dt.year
+    all_persons = combined_df[['Pers.No.', 'Bulan', 'Tahun']].drop_duplicates()
+    
     # 2. Saring hanya hari yang Total Biayanya > 20
     valid_days = daily_sum[daily_sum['Total Biaya'] > 20].copy()
     
@@ -166,7 +171,11 @@ def process_hko_logic(report_paths, output_path):
     valid_days['Tahun'] = valid_days['Start Date'].dt.year
     
     # 4. Hitung Kehadiran (jumlah hari valid) per Bulan per Tahun
-    result_df = valid_days.groupby(['Pers.No.', 'Bulan', 'Tahun']).size().reset_index(name='Kehadiran')
+    valid_counts = valid_days.groupby(['Pers.No.', 'Bulan', 'Tahun']).size().reset_index(name='Kehadiran')
+    
+    # Gabungkan dengan all_persons agar yang 0 kehadiran tetap muncul
+    result_df = pd.merge(all_persons, valid_counts, on=['Pers.No.', 'Bulan', 'Tahun'], how='left')
+    result_df['Kehadiran'] = result_df['Kehadiran'].fillna(0).astype(int)
     
     # 5. Urutkan berdasarkan Tahun, Bulan, lalu Pers.No. (Sesuai permintaan: bulan 4 kumpul dulu, baru bulan 5, dst)
     result_df = result_df.sort_values(by=['Tahun', 'Bulan', 'Pers.No.'])
