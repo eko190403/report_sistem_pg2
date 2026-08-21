@@ -147,10 +147,18 @@ def process_hko_logic(report_paths, output_path):
         df = safe_read_excel(path, sheet_name='Sheet1')
         if 'Pers.No.' not in df.columns or 'Start Date' not in df.columns or 'Total Biaya' not in df.columns:
             raise Exception("Kolom 'Pers.No.', 'Start Date', atau 'Total Biaya' tidak ditemukan di salah satu file HKO.")
-        df = df.dropna(subset=['Pers.No.', 'Start Date'])
+        # Jangan drop baris jika Start Date kosong, karena kita butuh Pers.No.-nya untuk Kehadiran 0
+        df = df.dropna(subset=['Pers.No.'])
         
-        # Ensure Start Date is datetime
-        df['Start Date'] = pd.to_datetime(df['Start Date'])
+        # Ensure Start Date is datetime (coerce errors to NaT)
+        df['Start Date'] = pd.to_datetime(df['Start Date'], errors='coerce')
+        
+        # Cari tanggal valid pertama di file ini untuk menebak bulan/tahun bagi yang Start Date-nya kosong
+        valid_dates = df['Start Date'].dropna()
+        if not valid_dates.empty:
+            inferred_date = valid_dates.iloc[0]
+            df['Start Date'] = df['Start Date'].fillna(inferred_date)
+            
         dfs.append(df)
         
     combined_df = pd.concat(dfs, ignore_index=True)
