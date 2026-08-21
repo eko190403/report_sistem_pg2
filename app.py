@@ -141,7 +141,7 @@ def process_data_logic(master_path, report_path, output_path):
     wb.save(output_path)
     return output_path
 
-def process_hko_logic(report_paths, output_path):
+def process_hko_logic(master_path, report_paths, output_path):
     dfs = []
     for path in report_paths:
         df = safe_read_excel(path, sheet_name='Sheet1')
@@ -184,6 +184,34 @@ def process_hko_logic(report_paths, output_path):
     # Gabungkan dengan all_persons agar yang 0 kehadiran tetap muncul
     result_df = pd.merge(all_persons, valid_counts, on=['Pers.No.', 'Bulan', 'Tahun'], how='left')
     result_df['Kehadiran'] = result_df['Kehadiran'].fillna(0).astype(int)
+    
+    # --- MAPPING MASTER DATA ---
+    # Baca data master
+    master_df = safe_read_excel(master_path, sheet_name='Sheet1')
+    master_df['Pers.No.'] = master_df['Pers.No.'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
+    master_df['Kode Mandor'] = master_df['Kode Mandor'].fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
+    
+    name_lookup_pers = master_df.set_index('Pers.No.')['Full Name'].to_dict()
+    kode_mandor_lookup = master_df.set_index('Pers.No.')['Kode Mandor'].to_dict()
+    
+    master_mandor = master_df[master_df['Kode Mandor'] != '']
+    name_lookup_kode = master_mandor.set_index('Kode Mandor')['Nama mandor'].to_dict()
+    
+    # Pastikan Pers.No. di result_df bertipe string untuk pencocokan
+    result_df['Pers.No.'] = result_df['Pers.No.'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
+    
+    # Map data
+    result_df['Nama TK'] = result_df['Pers.No.'].map(name_lookup_pers).fillna('')
+    result_df['KIT Mandor'] = result_df['Pers.No.'].map(kode_mandor_lookup).fillna('')
+    
+    # Untuk mendapatkan Nama Mandor, kita bisa menggunakan hasil 'KIT Mandor' yang baru saja di map
+    # ATAU fallback ke lookup kode mandor via Pers.No. (seperti di absensi jika Mandor diisi No Pers)
+    # Di sini, karena kita narik KIT Mandor dari Master (berdasarkan Pers.No TK), kita gunakan hasil tersebut
+    result_df['Nama Mandor'] = result_df['KIT Mandor'].map(name_lookup_kode).fillna('')
+    
+    # Atur urutan kolom
+    cols = ['Pers.No.', 'Nama TK', 'KIT Mandor', 'Nama Mandor', 'Bulan', 'Tahun', 'Kehadiran']
+    result_df = result_df[cols]
     
     # 5. Urutkan berdasarkan Tahun, Bulan, lalu Pers.No. (Sesuai permintaan: bulan 4 kumpul dulu, baru bulan 5, dst)
     result_df = result_df.sort_values(by=['Tahun', 'Bulan', 'Pers.No.'])
@@ -309,14 +337,19 @@ def process_files():
 
 @app.route('/process_hko', methods=['POST'])
 def process_hko():
-    if 'hko_file' not in request.files:
-        return "Missing file", 400
+    if 'hko_master_file' not in request.files or 'hko_file' not in request.files:
+        return "Missing files", 400
         
+    master_file = request.files['hko_master_file']
     hko_files = request.files.getlist('hko_file')
-    if not hko_files or hko_files[0].filename == '':
+    
+    if master_file.filename == '' or not hko_files or hko_files[0].filename == '':
         return "No selected file", 400
         
     temp_dir = tempfile.mkdtemp()
+    
+    master_path = os.path.join(temp_dir, secure_filename(master_file.filename))
+    master_file.save(master_path)
     
     hko_paths = []
     for f in hko_files:
@@ -333,7 +366,7 @@ def process_hko():
     output_path = os.path.join(temp_dir, output_filename)
     
     try:
-        process_hko_logic(hko_paths, output_path)
+        process_hko_logic(master_path, hko_paths, output_path)
         with open(output_path, 'rb') as f:
             data = f.read()
         return send_file(io.BytesIO(data), mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', as_attachment=True, download_name=output_filename)

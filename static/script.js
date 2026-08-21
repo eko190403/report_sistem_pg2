@@ -5,11 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const masterInput = document.getElementById('master_file');
     const reportInput = document.getElementById('report_file');
+    const hkoMasterInput = document.getElementById('hko_master_file');
     const hkoInput = document.getElementById('hko_file');
     const overtimeInput = document.getElementById('overtime_file');
     
     const masterName = document.getElementById('master-file-name');
     const reportName = document.getElementById('report-file-name');
+    const hkoMasterName = document.getElementById('hko-master-file-name');
     const hkoName = document.getElementById('hko-file-name');
     const overtimeName = document.getElementById('overtime-file-name');
     
@@ -75,11 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupDragAndDrop('master-drop-area', masterInput, masterName);
     setupDragAndDrop('report-drop-area', reportInput, reportName);
+    setupDragAndDrop('hko-master-drop-area', hkoMasterInput, hkoMasterName);
     setupDragAndDrop('hko-drop-area', hkoInput, hkoName);
     setupDragAndDrop('overtime-drop-area', overtimeInput, overtimeName);
 
     masterInput.addEventListener('change', () => updateFileName(masterInput, masterName));
     reportInput.addEventListener('change', () => updateFileName(reportInput, reportName));
+    hkoMasterInput.addEventListener('change', () => updateFileName(hkoMasterInput, hkoMasterName));
     hkoInput.addEventListener('change', () => updateFileName(hkoInput, hkoName));
     overtimeInput.addEventListener('change', () => updateFileName(overtimeInput, overtimeName));
 
@@ -174,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     absensiForm.addEventListener('submit', (e) => handleFormSubmit(e, absensiForm, [masterInput, reportInput], '/process'));
-    hkoForm.addEventListener('submit', (e) => handleFormSubmit(e, hkoForm, [hkoInput], '/process_hko'));
+    hkoForm.addEventListener('submit', (e) => handleFormSubmit(e, hkoForm, [hkoMasterInput, hkoInput], '/process_hko'));
     overtimeForm.addEventListener('submit', (e) => handleFormSubmit(e, overtimeForm, [overtimeInput], '/process_overtime'));
 });
 
@@ -189,6 +193,7 @@ function resetForm() {
     
     document.getElementById('master-file-name').textContent = 'Belum ada file dipilih';
     document.getElementById('report-file-name').textContent = 'Belum ada file dipilih';
+    document.getElementById('hko-master-file-name').textContent = 'Belum ada file dipilih';
     document.getElementById('hko-file-name').textContent = 'Belum ada file dipilih';
     document.getElementById('overtime-file-name').textContent = 'Belum ada file dipilih';
     

@@ -98,7 +98,15 @@
             </form>
 
             <form id="hko-form" enctype="multipart/form-data" style="display: none;">
-                <div class="file-inputs" style="grid-template-columns: 1fr;">
+                <div class="file-inputs">
+                    <div class="file-drop-area" id="hko-master-drop-area">
+                        <i class="fa-solid fa-users icon-upload"></i>
+                        <h3>Data Master Karyawan</h3>
+                        <p class="file-desc">Pilih file Master (misal: 12082026.XLSX)</p>
+                        <input type="file" id="hko_master_file" name="hko_master_file" accept=".xlsx, .xls" required>
+                        <span class="file-name" id="hko-master-file-name">Belum ada file dipilih</span>
+                    </div>
+
                     <div class="file-drop-area" id="hko-drop-area">
                         <i class="fa-solid fa-money-check-dollar icon-upload"></i>
                         <h3>Data Laporan HKO</h3>
