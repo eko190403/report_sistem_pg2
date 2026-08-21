@@ -264,6 +264,19 @@ def process_hko():
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    import threading
+    import os
+    import time
+    
+    def kill_server():
+        time.sleep(1) # Beri waktu 1 detik agar browser sempat menerima balasan sukses
+        os._exit(0)
+        
+    threading.Thread(target=kill_server, daemon=True).start()
+    return jsonify({'message': 'Server telah dimatikan secara permanen. Anda sekarang bebas untuk memindahkan, mengganti nama, atau menghapus file Report_PG2.exe.'})
+
 if __name__ == '__main__':
     from waitress import serve
     import threading

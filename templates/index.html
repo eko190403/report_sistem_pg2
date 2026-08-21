@@ -15,13 +15,33 @@
 <body>
 
     <div class="container">
-        <header>
+        <header style="position: relative;">
             <div class="logo">
                 <img src="/static/logo_white.jpeg" alt="Logo Perusahaan" class="company-logo">
             </div>
             <h1>Report Sistem PG2</h1>
             <p>Unggah data master & absensi untuk diolah secara otomatis.</p>
+            <button id="shutdown-btn" onclick="shutdownServer()" style="position: absolute; top: 10px; right: 10px; background: rgba(255, 50, 50, 0.8); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" onmouseover="this.style.background='rgba(255, 0, 0, 1)'" onmouseout="this.style.background='rgba(255, 50, 50, 0.8)'">
+                <i class="fas fa-power-off"></i> Matikan Mesin (.exe)
+            </button>
         </header>
+        <script>
+            function shutdownServer() {
+                if (confirm("Yakin ingin mematikan mesin Report_PG2.exe? Anda tidak akan bisa memproses data lagi sampai Anda mengklik ganda file .exe tersebut.")) {
+                    fetch('/shutdown', { method: 'POST' })
+                        .then(response => response.json())
+                        .then(data => {
+                            alert(data.message);
+                            window.close(); // Coba tutup tab
+                            document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:20vh;'>Mesin telah dimatikan. Anda boleh menutup halaman ini.</h1>";
+                        })
+                        .catch(err => {
+                            alert("Mesin berhasil dimatikan!");
+                            document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:20vh;'>Mesin telah dimatikan. Anda boleh menutup halaman ini.</h1>";
+                        });
+                }
+            }
+        </script>
 
         <main>
             <div class="tabs-container">
