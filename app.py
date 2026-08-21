@@ -202,15 +202,15 @@ def process_hko_logic(master_path, report_paths, output_path):
     
     # Map data
     result_df['Nama TK'] = result_df['Pers.No.'].map(name_lookup_pers).fillna('')
-    result_df['KIT Mandor'] = result_df['Pers.No.'].map(kode_mandor_lookup).fillna('')
+    result_df['Kode Mandor'] = result_df['Pers.No.'].map(kode_mandor_lookup).fillna('')
     
-    # Untuk mendapatkan Nama Mandor, kita bisa menggunakan hasil 'KIT Mandor' yang baru saja di map
+    # Untuk mendapatkan Nama Mandor, kita bisa menggunakan hasil 'Kode Mandor' yang baru saja di map
     # ATAU fallback ke lookup kode mandor via Pers.No. (seperti di absensi jika Mandor diisi No Pers)
-    # Di sini, karena kita narik KIT Mandor dari Master (berdasarkan Pers.No TK), kita gunakan hasil tersebut
-    result_df['Nama Mandor'] = result_df['KIT Mandor'].map(name_lookup_kode).fillna('')
+    # Di sini, karena kita narik Kode Mandor dari Master (berdasarkan Pers.No TK), kita gunakan hasil tersebut
+    result_df['Nama Mandor'] = result_df['Kode Mandor'].map(name_lookup_kode).fillna('')
     
     # Atur urutan kolom
-    cols = ['Pers.No.', 'Nama TK', 'KIT Mandor', 'Nama Mandor', 'Bulan', 'Tahun', 'Kehadiran']
+    cols = ['Pers.No.', 'Nama TK', 'Kode Mandor', 'Nama Mandor', 'Bulan', 'Tahun', 'Kehadiran']
     result_df = result_df[cols]
     
     # 5. Urutkan berdasarkan Tahun, Bulan, lalu Pers.No. (Sesuai permintaan: bulan 4 kumpul dulu, baru bulan 5, dst)
