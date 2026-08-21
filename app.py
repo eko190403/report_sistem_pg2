@@ -244,6 +244,10 @@ def process_overtime_logic(input_path, output_path):
     # Read original data
     df = pd.read_excel(input_path, engine='calamine')
     
+    if 'Date' in df.columns:
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.strftime('%Y-%m-%d')
+    
+    
     # Sheet 1: Data Absence
     cols_absence = ['Personnel Number', 'Date', 'Hari', 'Bulan', 'Tahun', 'Absence Type']
     available_absence = [c for c in cols_absence if c in df.columns]
