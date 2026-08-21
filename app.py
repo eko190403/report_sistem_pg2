@@ -195,6 +195,63 @@ def process_hko_logic(report_paths, output_path):
             
     return output_path
 
+def process_overtime_logic(input_path, output_path):
+    # Read original data
+    df = pd.read_excel(input_path, engine='calamine')
+    
+    # Sheet 1: Data Absence
+    cols_absence = ['Personnel Number', 'Date', 'Hari', 'Bulan', 'Tahun', 'Absence Type']
+    available_absence = [c for c in cols_absence if c in df.columns]
+    df_absence = df[available_absence].copy()
+    
+    # Sheet 2: Data Piket
+    cols_piket = ['Personnel Number', 'Date', 'Hari', 'Bulan', 'Tahun', 'Jam Piket Biasa', 'Jam Piket Libur']
+    available_piket = [c for c in cols_piket if c in df.columns]
+    df_piket = df[available_piket].copy()
+    
+    # Add Total column for Piket
+    if 'Jam Piket Biasa' in df_piket.columns and 'Jam Piket Libur' in df_piket.columns:
+        df_piket['Total'] = pd.to_numeric(df_piket['Jam Piket Biasa'], errors='coerce').fillna(0) + pd.to_numeric(df_piket['Jam Piket Libur'], errors='coerce').fillna(0)
+    
+    # Write to Excel
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Original Data', index=False)
+        df_absence.to_excel(writer, sheet_name='Data Absence', index=False)
+        df_piket.to_excel(writer, sheet_name='Data Piket', index=False)
+        
+    # Apply styling using openpyxl
+    wb = openpyxl.load_workbook(output_path)
+    
+    from openpyxl.styles import PatternFill, Font, Border, Side
+    header_fill = PatternFill(start_color="C0C0C0", end_color="C0C0C0", fill_type="solid") # grey
+    header_font = Font(color="003366", bold=True) # dark blue
+    thin_border = Border(left=Side(style='thin'), 
+                         right=Side(style='thin'), 
+                         top=Side(style='thin'), 
+                         bottom=Side(style='thin'))
+                         
+    for sheet_name in ['Data Absence', 'Data Piket']:
+        if sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            
+            # Style headers
+            for cell in ws[1]:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.border = thin_border
+                
+            # Style data cells with border
+            for row in ws.iter_rows(min_row=2):
+                for cell in row:
+                    cell.border = thin_border
+                    
+            # Auto-fit columns
+            for column_cells in ws.columns:
+                length = max(len(str(cell.value)) for cell in column_cells)
+                ws.column_dimensions[column_cells[0].column_letter].width = length + 2
+                
+    wb.save(output_path)
+
 @app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
