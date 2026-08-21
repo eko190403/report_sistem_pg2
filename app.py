@@ -94,7 +94,11 @@ def process_data_logic(master_path, report_path, output_path):
     report_df = report_df.fillna("")
 
     # Gunakan file Template yang sudah mengandung PivotTable asli
-    template_path = os.path.join(app.root_path, 'Template_Report.xlsx')
+    if getattr(sys, 'frozen', False):
+        template_path = os.path.join(sys._MEIPASS, 'Template_Report.xlsx')
+    else:
+        template_path = os.path.join(app.root_path, 'Template_Report.xlsx')
+        
     shutil.copy(template_path, output_path)
 
     # Buka file hasil kopian menggunakan openpyxl
