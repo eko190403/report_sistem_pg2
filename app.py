@@ -210,7 +210,7 @@ def process_hko_logic(master_path, report_paths, output_path):
     result_df['Nama Mandor'] = result_df['Kode Mandor'].map(name_lookup_kode).fillna('')
     
     # Atur urutan kolom
-    cols = ['Pers.No.', 'Nama TK', 'Kode Mandor', 'Nama Mandor', 'Bulan', 'Tahun', 'Kehadiran']
+    cols = ['Pers.No.', 'Bulan', 'Tahun', 'Kehadiran', 'Nama TK', 'Kode Mandor', 'Nama Mandor']
     result_df = result_df[cols]
     
     # 5. Urutkan berdasarkan Tahun, Bulan, lalu Pers.No. (Sesuai permintaan: bulan 4 kumpul dulu, baru bulan 5, dst)
