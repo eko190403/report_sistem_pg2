@@ -76,18 +76,27 @@ COLUMN_ALIASES = {
 def standardize_columns(df, expected_columns):
     """Mengubah nama kolom menjadi nama standar yang dibutuhkan program"""
     new_cols = {}
+    mapped_std_names = set()
+    
     for col in df.columns:
         col_str = str(col).strip()
         found = False
         for std_name in expected_columns:
-            if std_name in COLUMN_ALIASES:
+            if std_name in COLUMN_ALIASES and std_name not in mapped_std_names:
                 if col_str.lower() in [a.lower() for a in COLUMN_ALIASES[std_name]]:
                     new_cols[col] = std_name
+                    mapped_std_names.add(std_name)
                     found = True
                     break
         if not found:
             new_cols[col] = col
-    return df.rename(columns=new_cols)
+            
+    # Rename columns
+    df = df.rename(columns=new_cols)
+    
+    # Hapus duplikat kolom (jika ada 2 kolom yang tidak sengaja map ke nama yang sama atau namanya memang double)
+    df = df.loc[:, ~df.columns.duplicated()]
+    return df
 
 def process_data_logic(master_path, report_path, output_path):
     # 1. Load Master Data
