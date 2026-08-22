@@ -43,9 +43,57 @@ app.secret_key = 'super_secret_key_change_me_in_production'
 os.makedirs('templates', exist_ok=True)
 os.makedirs('static', exist_ok=True)
 
+COLUMN_ALIASES = {
+    # Absensi & HKO Master
+    'Pers.No.': ['Pers.No.', 'Personnel Number', 'NIK', 'KIT TK', 'Nomor Personil', 'No. Personil'],
+    'Kode Mandor': ['Kode Mandor', 'Kit Mandor', 'Mandor', 'ID Mandor', 'Nomor Mandor'],
+    'Full Name': ['Full Name', 'Nama', 'Nama Lengkap', 'Nama TK', 'Nama Pekerja'],
+    'ZJABATAN': ['ZJABATAN', 'Jabatan', 'Position'],
+    'Organizational Unit': ['Organizational Unit', 'Bagian', 'Unit', 'Departemen'],
+    'Nama mandor': ['Nama mandor', 'Nama Mandor', 'Mandor Name'],
+    
+    # Absensi Report
+    'KIT TK': ['KIT TK', 'Pers.No.', 'Personnel Number', 'NIK', 'Nomor Personil'],
+    'Mandor': ['Mandor', 'Kode Mandor', 'Kit Mandor', 'ID Mandor'],
+    'Nama TK': ['Nama TK', 'Full Name', 'Nama', 'Nama Lengkap'],
+    'Date Shift': ['Date Shift', 'Date', 'Tanggal', 'Tgl', 'Tgl Shift'],
+    
+    # HKO
+    'Start Date': ['Start Date', 'Date', 'Tanggal', 'Tgl', 'Tgl Mulai'],
+    'Total Biaya': ['Total Biaya', 'Biaya', 'Cost', 'Total Cost', 'Total'],
+    
+    # Overtime
+    'Personnel Number': ['Personnel Number', 'Pers.No.', 'NIK', 'KIT TK', 'Nomor Personil'],
+    'Date': ['Date', 'Tanggal', 'Tgl', 'Start Date', 'Date Shift'],
+    'Hari': ['Hari', 'Day'],
+    'Bulan': ['Bulan', 'Month'],
+    'Tahun': ['Tahun', 'Year'],
+    'Absence Type': ['Absence Type', 'Tipe Absen', 'Jenis Absen', 'A/T'],
+    'Jam Piket Biasa': ['Jam Piket Biasa', 'Piket Biasa', 'Biasa'],
+    'Jam Piket Libur': ['Jam Piket Libur', 'Piket Libur', 'Libur']
+}
+
+def standardize_columns(df, expected_columns):
+    """Mengubah nama kolom menjadi nama standar yang dibutuhkan program"""
+    new_cols = {}
+    for col in df.columns:
+        col_str = str(col).strip()
+        found = False
+        for std_name in expected_columns:
+            if std_name in COLUMN_ALIASES:
+                if col_str.lower() in [a.lower() for a in COLUMN_ALIASES[std_name]]:
+                    new_cols[col] = std_name
+                    found = True
+                    break
+        if not found:
+            new_cols[col] = col
+    return df.rename(columns=new_cols)
+
 def process_data_logic(master_path, report_path, output_path):
     # 1. Load Master Data
     master_df = safe_read_excel(master_path, sheet_name='Sheet1')
+    master_df = standardize_columns(master_df, ['Pers.No.', 'Kode Mandor', 'Full Name', 'ZJABATAN', 'Organizational Unit', 'Nama mandor'])
+    
     master_df['Pers.No.'] = master_df['Pers.No.'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     master_df['Kode Mandor'] = master_df['Kode Mandor'].fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     
@@ -59,6 +107,7 @@ def process_data_logic(master_path, report_path, output_path):
     # 2. Load Report Data
     xl_report = safe_excel_file(report_path)
     report_df = xl_report.parse('Worksheet')
+    report_df = standardize_columns(report_df, ['KIT TK', 'Mandor', 'Nama TK', 'Date Shift'])
     
     report_df['KIT TK'] = report_df['KIT TK'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     report_df['Mandor'] = report_df['Mandor'].fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
@@ -94,8 +143,14 @@ def process_data_logic(master_path, report_path, output_path):
     report_df = report_df.fillna("")
 
     # Gunakan file Template yang sudah mengandung PivotTable asli
+    template_path = None
     if getattr(sys, 'frozen', False):
-        template_path = os.path.join(sys._MEIPASS, 'Template_Report.xlsx')
+        exe_dir = os.path.dirname(sys.executable)
+        external_template = os.path.join(exe_dir, 'Template_Report.xlsx')
+        if os.path.exists(external_template):
+            template_path = external_template
+        else:
+            template_path = os.path.join(sys._MEIPASS, 'Template_Report.xlsx')
     else:
         template_path = os.path.join(app.root_path, 'Template_Report.xlsx')
         
@@ -145,8 +200,10 @@ def process_hko_logic(master_path, report_paths, output_path):
     dfs = []
     for path in report_paths:
         df = safe_read_excel(path, sheet_name='Sheet1')
+        df = standardize_columns(df, ['Pers.No.', 'Start Date', 'Total Biaya'])
+        
         if 'Pers.No.' not in df.columns or 'Start Date' not in df.columns or 'Total Biaya' not in df.columns:
-            raise Exception("Kolom 'Pers.No.', 'Start Date', atau 'Total Biaya' tidak ditemukan di salah satu file HKO.")
+            raise Exception("Kolom identitas (seperti 'Pers.No.', 'Start Date', atau 'Total Biaya') tidak ditemukan di salah satu file HKO. Pastikan format file benar.")
         # Jangan drop baris jika Start Date kosong, karena kita butuh Pers.No.-nya untuk Kehadiran 0
         df = df.dropna(subset=['Pers.No.'])
         
@@ -188,6 +245,8 @@ def process_hko_logic(master_path, report_paths, output_path):
     # --- MAPPING MASTER DATA ---
     # Baca data master
     master_df = safe_read_excel(master_path, sheet_name='Sheet1')
+    master_df = standardize_columns(master_df, ['Pers.No.', 'Kode Mandor', 'Full Name', 'Nama mandor'])
+    
     master_df['Pers.No.'] = master_df['Pers.No.'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     master_df['Kode Mandor'] = master_df['Kode Mandor'].fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
     
@@ -243,6 +302,10 @@ def process_hko_logic(master_path, report_paths, output_path):
 def process_overtime_logic(input_path, output_path):
     # Read original data
     df = pd.read_excel(input_path, engine='calamine')
+    
+    # Standardize expected columns
+    expected = ['Personnel Number', 'Date', 'Hari', 'Bulan', 'Tahun', 'Absence Type', 'Jam Piket Biasa', 'Jam Piket Libur']
+    df = standardize_columns(df, expected)
     
     if 'Date' in df.columns:
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.date
