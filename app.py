@@ -498,11 +498,12 @@ if __name__ == '__main__':
 
     print("=========================================================")
     print(" Server Report Sistem PG2 (Production Mode) Aktif!")
-    print(" Silakan buka browser di: http://127.0.0.1:5000")
+    print(" Silakan buka browser di komputer ini pada: http://127.0.0.1:5000")
+    print(" Atau buka di HP (1 jaringan WiFi) menggunakan IP Komputer ini, contoh: http://192.168.x.x:5000")
     print("=========================================================")
     
     # Jalankan perintah pembuka browser di background
     threading.Thread(target=open_browser, daemon=True).start()
     
-    # Jalankan server
-    serve(app, host='127.0.0.1', port=5000, threads=8)
+    # Jalankan server dengan host 0.0.0.0 agar bisa diakses dari HP/LAN
+    serve(app, host='0.0.0.0', port=5000, threads=8)
