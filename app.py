@@ -301,7 +301,7 @@ def process_hko_logic(master_path, report_paths, output_path):
 
 def process_overtime_logic(input_path, output_path):
     # Read original data
-    df = pd.read_excel(input_path, engine='calamine')
+    df = safe_read_excel(input_path)
     
     # Standardize expected columns
     expected = ['Personnel Number', 'Date', 'Hari', 'Bulan', 'Tahun', 'Absence Type', 'Jam Piket Biasa', 'Jam Piket Libur']
